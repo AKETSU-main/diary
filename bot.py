@@ -136,16 +136,30 @@ def callback(call):
             reply_markup=main_menu_markup()
         )
 
-    # 🔔 ЗВОНКИ
+    # 🔔 ЗВОНКИ - ВЫБОР ДНЯ
     elif call.data == "bells":
-        text = "🔔 Расписание звонков:\n\n"
-        for i, time in enumerate(data["bells"]["Понедельник"], 1):
-            text += f"{i}. {time}\n"
+        user["mode"] = "bells"
 
-        markup = types.InlineKeyboardMarkup()
-        markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger'))
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
 
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        buttons = [
+            types.InlineKeyboardButton(d, callback_data=f"day_{d}")
+            for d in days
+        ]
+        markup.add(*buttons)
+
+        markup.row(
+            types.InlineKeyboardButton("⬅️ Назад", callback_data="home", style='success'),
+            types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
+        )
+
+        bot.edit_message_text(
+            "Выберите день недели для просмотра расписания звонков:",
+            chat_id,
+            call.message.message_id,
+            reply_markup=markup
+        )
         return
 
     # 📚 УРОКИ
@@ -256,7 +270,7 @@ def callback(call):
             for l in lessons:
                 text += f"{l['lesson']}. {l['time']}\n{l['subject']} ({l['room']})\n👨‍🏫 {l['teacher']}\n\n"
 
-        else:
+        elif user.get("mode") == "teacher":
             teacher = user.get("teacher")
             lessons = data["teachers"].get(teacher, {}).get(day, [])
 
@@ -264,7 +278,14 @@ def callback(call):
             for l in lessons:
                 text += f"{l['lesson']}. {l['time']}\n{l['class']} — {l['subject']} ({l['room']})\n\n"
 
-        back = "class" if user.get("mode") == "class" else "teacher"
+        elif user.get("mode") == "bells":
+            bells = data["bells"].get(day, [])
+
+            text = f"🔔 Расписание звонков — {day}\n\n"
+            for i, time in enumerate(bells, 1):
+                text += f"{i}. {time}\n"
+
+        back = "class" if user.get("mode") == "class" else ("teacher" if user.get("mode") == "teacher" else "bells")
 
         markup = types.InlineKeyboardMarkup()
         markup.row(
