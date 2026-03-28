@@ -2,14 +2,26 @@ import telebot
 from telebot import types
 import json
 
-TOKEN = "8041709319:AAECrBAo_jfiIydFkoOTu2BWylpJv7z0BlQ"
+# ========================
+# 🔐 ТОКЕН ИЗ ФАЙЛА
+# ========================
+with open("token.txt", "r") as f:
+    TOKEN = f.read().strip()
+
 bot = telebot.TeleBot(TOKEN)
 
+# ========================
+# 📂 ЗАГРУЗКА БД
+# ========================
 with open("schedule.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
 user_state = {}
 
+# Классы: А–О
+CLASS_LETTERS = list("АБВГДЕЖЗИЙКЛМНО")
+
+# Алфавит учителей
 ALPHABET = list("АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ")
 
 
@@ -28,8 +40,8 @@ def get_user(chat_id):
 def main_menu_markup():
     markup = types.InlineKeyboardMarkup()
     markup.add(
-        types.InlineKeyboardButton("📍 Расписание звонков", callback_data="bells"),
-        types.InlineKeyboardButton("📍 Расписание уроков", callback_data="lessons")
+        types.InlineKeyboardButton("📍 Расписание звонков", callback_data="bells", style='primary'),
+        types.InlineKeyboardButton("📍 Расписание уроков", callback_data="lessons", style='primary')
     )
     return markup
 
@@ -61,15 +73,15 @@ def alphabet_page(page=0):
         markup.row(*nav)
 
     markup.row(
-        types.InlineKeyboardButton("⬅️ Назад", callback_data="lessons"),
-        types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+        types.InlineKeyboardButton("⬅️ Назад", callback_data="lessons", style='success'),
+        types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
     )
 
     return markup
 
 
 # ========================
-# 🔹 START
+# 🚀 START (С КАРТИНКОЙ)
 # ========================
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -77,7 +89,7 @@ def start(message):
 
 
 # ========================
-# 🔹 ПОИСК УЧИТЕЛЯ ВРУЧНУЮ
+# 🔍 ПОИСК УЧИТЕЛЯ
 # ========================
 @bot.message_handler(func=lambda m: True)
 def teacher_search(message):
@@ -100,8 +112,8 @@ def teacher_search(message):
         markup.add(types.InlineKeyboardButton(t, callback_data=f"teacher_{t}"))
 
     markup.row(
-        types.InlineKeyboardButton("⬅️ Назад", callback_data="teacher"),
-        types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+        types.InlineKeyboardButton("⬅️ Назад", callback_data="teacher", style='success'),
+        types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
     )
 
     bot.send_message(chat_id, "🔎 Результаты поиска:", reply_markup=markup)
@@ -115,9 +127,7 @@ def callback(call):
     chat_id = call.message.chat.id
     user = get_user(chat_id)
 
-    # --------------------
     # 🏠 ГЛАВНАЯ
-    # --------------------
     if call.data == "home":
         bot.edit_message_text(
             "📚 Главное меню:",
@@ -126,35 +136,29 @@ def callback(call):
             reply_markup=main_menu_markup()
         )
 
-    # --------------------
     # 🔔 ЗВОНКИ
-    # --------------------
     elif call.data == "bells":
         text = "🔔 Расписание звонков:\n\n"
         for i, time in enumerate(data["bells"]["Понедельник"], 1):
             text += f"{i}. {time}\n"
 
         markup = types.InlineKeyboardMarkup()
-        markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home"))
+        markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger'))
 
         bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
 
-    # --------------------
     # 📚 УРОКИ
-    # --------------------
     elif call.data == "lessons":
         markup = types.InlineKeyboardMarkup()
         markup.add(
-            types.InlineKeyboardButton("☀️ Класс", callback_data="class"),
-            types.InlineKeyboardButton("👩‍🏫 Учитель", callback_data="teacher")
+            types.InlineKeyboardButton("☀️ Класс", callback_data="class", style='primary'),
+            types.InlineKeyboardButton("👩‍🏫 Учитель", callback_data="teacher", style='success')
         )
-        markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home"))
+        markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger'))
 
         bot.edit_message_text("Выберите:", chat_id, call.message.message_id, reply_markup=markup)
 
-    # --------------------
     # 🏫 КЛАССЫ
-    # --------------------
     elif call.data == "class":
         user["mode"] = "class"
 
@@ -166,8 +170,8 @@ def callback(call):
         markup.add(*buttons)
 
         markup.row(
-            types.InlineKeyboardButton("⬅️ Назад", callback_data="lessons"),
-            types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+            types.InlineKeyboardButton("⬅️ Назад", callback_data="lessons", style='success'),
+            types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
         )
 
         bot.edit_message_text("Выберите класс:", chat_id, call.message.message_id, reply_markup=markup)
@@ -177,17 +181,16 @@ def callback(call):
         user["class_num"] = cls
 
         markup = types.InlineKeyboardMarkup(row_width=4)
-        letters = ["А", "Б", "В", "Г"]
 
         buttons = [
             types.InlineKeyboardButton(f"{cls}{l}", callback_data=f"classfull_{cls}{l}")
-            for l in letters
+            for l in CLASS_LETTERS
         ]
         markup.add(*buttons)
 
         markup.row(
-            types.InlineKeyboardButton("⬅️ Назад", callback_data="class"),
-            types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+            types.InlineKeyboardButton("⬅️ Назад", callback_data="class", style='success'),
+            types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
         )
 
         bot.edit_message_text("Выберите букву:", chat_id, call.message.message_id, reply_markup=markup)
@@ -196,9 +199,7 @@ def callback(call):
         user["class"] = call.data.split("_")[1]
         send_days(call)
 
-    # --------------------
     # 👩‍🏫 УЧИТЕЛЯ
-    # --------------------
     elif call.data == "teacher":
         user["mode"] = "teacher"
 
@@ -229,8 +230,8 @@ def callback(call):
             markup.add(types.InlineKeyboardButton(t, callback_data=f"teacher_{t}"))
 
         markup.row(
-            types.InlineKeyboardButton("⬅️ Назад", callback_data="teacher"),
-            types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+            types.InlineKeyboardButton("⬅️ Назад", callback_data="teacher", style='success'),
+            types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
         )
 
         bot.edit_message_text("Выберите учителя:", chat_id, call.message.message_id, reply_markup=markup)
@@ -239,9 +240,7 @@ def callback(call):
         user["teacher"] = call.data.split("_")[1]
         send_days(call)
 
-    # --------------------
     # 📅 ДНИ
-    # --------------------
     elif call.data.startswith("day_"):
         day = call.data.split("_")[1]
 
@@ -265,8 +264,8 @@ def callback(call):
 
         markup = types.InlineKeyboardMarkup()
         markup.row(
-            types.InlineKeyboardButton("⬅️ Назад", callback_data=back),
-            types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+            types.InlineKeyboardButton("⬅️ Назад", callback_data=back, style='success'),
+            types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
         )
 
         bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
@@ -289,8 +288,8 @@ def send_days(call):
     back = "class" if user.get("mode") == "class" else "teacher"
 
     markup.row(
-        types.InlineKeyboardButton("⬅️ Назад", callback_data=back),
-        types.InlineKeyboardButton("🏠 Главная", callback_data="home")
+        types.InlineKeyboardButton("⬅️ Назад", callback_data=back, style='success'),
+        types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger')
     )
 
     bot.edit_message_text(
@@ -302,4 +301,6 @@ def send_days(call):
 
 
 # ========================
+print("Бот запущен")
+bot.remove_webhook()
 bot.polling(none_stop=True)
