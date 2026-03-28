@@ -18,8 +18,8 @@ with open("schedule.json", "r", encoding="utf-8") as f:
 
 user_state = {}
 
-# Классы: А–О
-CLASS_LETTERS = list("АБВГДЕЖЗИЙКЛМНО")
+# Классы: А–Г (кириллические)
+CLASS_LETTERS = ["А", "Б", "В", "Г"]
 
 # Алфавит учителей
 ALPHABET = list("АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ")
@@ -146,6 +146,7 @@ def callback(call):
         markup.row(types.InlineKeyboardButton("🏠 Главная", callback_data="home", style='danger'))
 
         bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        return
 
     # 📚 УРОКИ
     elif call.data == "lessons":
@@ -194,10 +195,12 @@ def callback(call):
         )
 
         bot.edit_message_text("Выберите букву:", chat_id, call.message.message_id, reply_markup=markup)
+        return
 
     elif call.data.startswith("classfull_"):
         user["class"] = call.data.split("_")[1]
         send_days(call)
+        return
 
     # 👩‍🏫 УЧИТЕЛЯ
     elif call.data == "teacher":
@@ -239,6 +242,7 @@ def callback(call):
     elif call.data.startswith("teacher_"):
         user["teacher"] = call.data.split("_")[1]
         send_days(call)
+        return
 
     # 📅 ДНИ
     elif call.data.startswith("day_"):
@@ -269,6 +273,7 @@ def callback(call):
         )
 
         bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        return
 
 
 # ========================
@@ -298,6 +303,7 @@ def send_days(call):
         call.message.message_id,
         reply_markup=markup
     )
+    return
 
 
 # ========================
